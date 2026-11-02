@@ -1,0 +1,9 @@
+# 敏感配置：禁止提交任何真实环境变量文件
+.env
+.env.local
+.env.*
+!.env.example
+
+# Python 缓存
+__pycache__/
+*.py[cod]

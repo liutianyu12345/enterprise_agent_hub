@@ -6,6 +6,8 @@ Rerank 模块：对初排召回的 Top-N 候选文档进行 Cross-Encoder 深度
 import os
 from typing import List, Dict
 
+import jieba
+
 class DocumentReranker:
     def __init__(self):
         self.has_model = False
@@ -43,7 +45,8 @@ class DocumentReranker:
 
         # 【新手无 GPU 降级保护】：基于词频重合度做轻量级启发式精排
         print("💡 [Reranker] 采用轻量关键词交叉精排打分中...")
-        query_words = set(query)
+        # 先分词再比对，避免单字符集合匹配（如 delete 被拆成 d/e/l/t）造成无关文档误命中
+        query_words = set(jieba.cut(query))
         scored = []
         for doc in candidates:
             overlap = sum(1 for w in query_words if w in doc["text"])
