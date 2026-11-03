@@ -13,7 +13,7 @@ class DocumentReranker:
         self.has_model = False
         self.reranker = None
         # 尝试检查本地缓存是否已有 BGE-Reranker 模型
-        local_model_path = os.getenv("BGE_RERANKER_PATH", "")
+        local_model_path = os.getenv("BGE_RERANKER_PATH", "D:\model\modelscope")
         if local_model_path and os.path.exists(local_model_path):
             try:
                 from FlagEmbedding import FlagReranker
