@@ -10,7 +10,7 @@ down:
 
 # 3. 启动 Python Agent 核心大脑服务
 run-agent:
-	cd agent_service && python server.py
+	python -m uvicorn agent_service.server:app --host 0.0.0.0 --port 8000
 
 # 4. 启动 Go 高性能网关
 run-gateway:

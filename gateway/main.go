@@ -57,7 +57,7 @@ func main() {
 				time.Now().UnixNano())
 		}
 		//A. 设置标准SSE响应头，告知浏览器这是一个分块长连接流
-		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		c.Writer.Header().Set("Connection", "keep-alive")
 		c.Writer.Header().Set("Transfer-Encoding", "chunked")
@@ -109,7 +109,7 @@ func main() {
 			})
 			return
 		}
-		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 		c.Writer.Header().Set("Cache-Control", "no-cache")
 		flusher, _ := c.Writer.(http.Flusher)
 		fmt.Printf("🚀 [Go Gateway] 收到新审批任务 (ThreadID: %s，Approved: %v), 开启 SSE 实时转发...\n", req.ThreadID, req.Approved)

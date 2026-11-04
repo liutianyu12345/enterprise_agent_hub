@@ -13,8 +13,8 @@
 import os
 import subprocess
 import tempfile
-from langgraph_core.message import HumanMessage,SystemMessage
-from langgraph_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
 from agent_service.rag.hybrid_retriever import HybridRetriever
 from agent_service.rag.reranker import DocumentReranker
 from agent_service.graph.state import AgentState

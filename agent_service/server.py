@@ -1,6 +1,9 @@
 """FastAPI 服务入口：暴露流式接口与人工审批恢复接口"""
 import json
 import asyncio
+from dotenv import load_dotenv
+# 先加载 .env，确保后续导入节点时能读取到模型密钥等配置
+load_dotenv()
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -42,13 +45,16 @@ async def stream_task(req: StreamRequest):
         # 使用 hub_graph.stream 遍历图的每个节点产生的状态更新
         for event in hub_graph.stream(initial_state, config=config):
             for node_name,node_update in event.items():
+                #跳过 __interrupt__ 等非节点状态事件（其值为 tuple）
+                if not isinstance(node_update, dict):
+                    continue
                 payload = {
                     "node": node_name,
-                    "status": node_update("status", "PROCESSING"),
-                    "code": node_update("code", ""),
-                    "error": node_update("error_message", ""),
-                    "retry_count": node_update("retry_count", 0),
-                    "output": node_update("final_output", "")
+                    "status": node_update.get("status", "PROCESSING"),
+                    "code": node_update.get("code", ""),
+                    "error": node_update.get("error_message", ""),
+                    "retry_count": node_update.get("retry_count", 0),
+                    "output": node_update.get("final_output", "")
                 }
                 #发送 SSE 数据行
                 yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
@@ -63,8 +69,8 @@ async def stream_task(req: StreamRequest):
                     "code": current_state.values.get("code", "")
                 }
                 yield f"data: {json.dumps(interrupt_payload, ensure_ascii=False)}\n\n"
-            yield "data: [DONE]\n\n"
-        return StreamingResponse(event_generator(),media_type="text/event-stream")
+        yield "data: [DONE]\n\n"
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.post("/approve")
 async def approve_task(req: ApproveRequest):
@@ -81,6 +87,8 @@ async def approve_task(req: ApproveRequest):
         # 人工同意执行：传入 None，从 Checkpointer 快照断点无缝恢复
         for event in hub_graph.stream(None, config=config):
             for node_name,node_update in event.items():
+                if not isinstance(node_update, dict):
+                    continue
                 payload = {
                     "node": node_name,
                     "status": node_update.get("status", "COMPLETED"),
