@@ -3,6 +3,7 @@ package main
 // Go 高性能接入层入口
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,6 +15,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
+
+// 前端测试控制台页面，编译时内嵌进二进制，无需额外静态文件服务器
+//
+//go:embed web/index.html
+var indexHTML []byte
+
 
 func main() {
 	//1.初始化Redis 客户端连接
@@ -42,6 +49,10 @@ func main() {
 			"status": "ok",
 			"server": "Go Gateway",
 		})
+	})
+	//简易前端测试控制台：浏览器打开 http://localhost:8080/ 即可
+	r.GET("/", func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
 	})
 	//5. 核心流式代理端点： POST/api/v1/agent/stream
 	r.POST("/api/v1/agent/stream", func(c *gin.Context) {

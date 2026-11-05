@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Enterprise Agent Hub · 测试控制台</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #131a2e;
+    --panel-2: #0e1424;
+    --border: #243050;
+    --text: #e6ebf5;
+    --muted: #8b97b4;
+    --blue: #4f8cff;
+    --purple: #a678ff;
+    --cyan: #31c9d4;
+    --amber: #f0a92c;
+    --red: #ff5d6c;
+    --green: #35d07f;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(1200px 700px at 15% -10%, #16224a 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+  }
+  .app { max-width: 1200px; margin: 0 auto; padding: 24px 20px 40px; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    display: grid; place-items: center; font-weight: 700; font-size: 18px;
+    box-shadow: 0 6px 20px rgba(79, 140, 255, .35);
+  }
+  h1 { margin: 0; font-size: 19px; letter-spacing: .5px; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .health {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 14px; color: var(--muted); font-size: 12px; background: var(--panel);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  main { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 18px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px; min-width: 0;
+  }
+  .panel-title {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; color: var(--muted); margin-bottom: 14px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 14px 0 6px; }
+  input, textarea {
+    width: 100%; background: var(--panel-2); color: var(--text);
+    border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 12px; font-size: 13px; outline: none;
+    font-family: inherit; transition: border-color .15s;
+  }
+  input:focus, textarea:focus { border-color: var(--blue); }
+  textarea { resize: vertical; min-height: 110px; line-height: 1.55; }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; }
+  .ghost {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 9px; padding: 0 12px; cursor: pointer; font-size: 12px;
+  }
+  .ghost:hover { color: var(--text); border-color: var(--blue); }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .preset {
+    background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+  }
+  .preset:hover { color: var(--text); border-color: var(--blue); }
+
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  .primary {
+    flex: 1; background: linear-gradient(135deg, var(--blue), #3f6df0);
+    color: #fff; border: none; border-radius: 9px; padding: 12px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .primary:disabled { opacity: .55; cursor: not-allowed; }
+  .stop {
+    background: transparent; color: var(--red); border: 1px solid rgba(255, 93, 108, .5);
+    border-radius: 9px; padding: 0 16px; cursor: pointer;
+  }
+  .stop:disabled { opacity: .4; cursor: not-allowed; }
+
+  .approval { display: none; margin-top: 16px; padding: 14px; border-radius: 10px;
+    border: 1px solid rgba(240, 169, 44, .5); background: rgba(240, 169, 44, .08); }
+  .approval.show { display: block; }
+  .approval h3 { margin: 0 0 6px; font-size: 14px; color: var(--amber); }
+  .approval p { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .approval .actions { margin-top: 0; }
+  .approve-btn {
+    flex: 1; background: rgba(53, 208, 127, .15); color: var(--green);
+    border: 1px solid rgba(53, 208, 127, .5); border-radius: 9px;
+    padding: 10px; cursor: pointer; font-weight: 600;
+  }
+  .reject-btn {
+    flex: 1; background: rgba(255, 93, 108, .12); color: var(--red);
+    border: 1px solid rgba(255, 93, 108, .5); border-radius: 9px;
+    padding: 10px; cursor: pointer; font-weight: 600;
+  }
+  .approve-btn:disabled, .reject-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .stream-head { align-items: center; }
+  .hint { color: var(--muted); font-size: 12px; letter-spacing: 0; text-transform: none; }
+  .timeline { min-height: 420px; max-height: calc(100vh - 230px); overflow-y: auto;
+    padding-right: 4px; scroll-behavior: smooth; }
+  .empty { color: var(--muted); text-align: center; padding: 90px 20px; font-size: 13px; line-height: 1.9; }
+  .empty b { display: block; color: var(--text); font-size: 15px; margin-bottom: 6px; }
+
+  .event { border: 1px solid var(--border); border-left: 3px solid var(--blue);
+    border-radius: 10px; background: var(--panel-2); padding: 12px 14px; margin-bottom: 10px;
+    animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .event.dev-rag { border-left-color: var(--blue); }
+  .event.dev-coder { border-left-color: var(--purple); }
+  .event.dev-sandbox { border-left-color: var(--cyan); }
+  .event.dev-reflect { border-left-color: var(--amber); }
+  .event.dev-danger_check { border-left-color: var(--red); }
+  .event.dev-approval { border-left-color: var(--green); }
+  .event.dev-fallback { border-left-color: var(--red); }
+  .event.dev-INTERRUPT { border-left-color: var(--amber); }
+  .event.dev-error { border-left-color: var(--red); }
+
+  .event-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .node { font-family: Consolas, monospace; font-weight: 600; font-size: 13px; color: var(--text); }
+  .badge { font-size: 11px; border-radius: 5px; padding: 2px 8px; border: 1px solid var(--border); }
+  .badge.PROCESSING { color: var(--blue); border-color: rgba(79, 140, 255, .45); }
+  .badge.WAITING_APPROVAL { color: var(--amber); border-color: rgba(240, 169, 44, .45); }
+  .badge.COMPLETED { color: var(--green); border-color: rgba(53, 208, 127, .45); }
+  .badge.FAILED, .badge.REJECTED { color: var(--red); border-color: rgba(255, 93, 108, .45); }
+  .retry { font-size: 11px; color: var(--amber); }
+  .time { margin-left: auto; color: var(--muted); font-size: 11px; }
+
+  .body { margin-top: 10px; display: grid; gap: 8px; }
+  .code {
+    margin: 0; background: #080d19; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; font-family: Consolas, "Courier New", monospace; font-size: 12.5px;
+    line-height: 1.65; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto;
+  }
+  .err { color: var(--red); background: rgba(255, 93, 108, .08); border: 1px solid rgba(255, 93, 108, .3);
+    border-radius: 8px; padding: 9px 11px; font-family: Consolas, monospace; font-size: 12px;
+    white-space: pre-wrap; word-break: break-word; }
+  .out { color: var(--text); background: rgba(53, 208, 127, .07); border: 1px solid rgba(53, 208, 127, .3);
+    border-radius: 8px; padding: 9px 11px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+  .label { color: var(--muted); font-size: 11px; margin-bottom: -2px; letter-spacing: .5px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="logo">A</div>
+      <div>
+        <h1>Enterprise Agent Hub · 测试控制台</h1>
+        <div class="sub">Go 网关（:8080） → Python Agent（:8000） · SSE 流式 · 人工在环审批</div>
+      </div>
+    </div>
+    <div class="health"><span class="dot" id="healthDot"></span><span id="healthText">正在检测网关...</span></div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="panel-title">任务参数</div>
+
+      <label for="tenant">租户 ID（X-Tenant-ID，用于限流）</label>
+      <input id="tenant" value="tenant_demo_001" autocomplete="off" />
+
+      <label for="thread">会话 Thread ID（审批恢复依赖此 ID）</label>
+      <div class="row">
+        <input id="thread" autocomplete="off" />
+        <button class="ghost" id="newThread" type="button">新会话</button>
+      </div>
+
+      <label for="prompt">需求描述</label>
+      <textarea id="prompt" spellcheck="false">请帮我写一个快速排序算法并测试验证</textarea>
+      <div class="presets">
+        <button class="preset" type="button" data-kind="normal">正常任务</button>
+        <button class="preset" type="button" data-kind="danger">高危任务（需审批）</button>
+        <button class="preset" type="button" data-kind="timeout">超时/熔断</button>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="runBtn">开始执行</button>
+        <button class="stop" id="stopBtn" disabled>停止</button>
+      </div>
+
+      <div class="approval" id="approvalBox">
+        <h3>高危操作待审批</h3>
+        <p>Agent 已在 approval 节点前挂起。批准后从 Checkpointer 断点恢复执行，驳回则直接终止任务。</p>
+        <div class="actions">
+          <button class="approve-btn" id="approveBtn">批准执行</button>
+          <button class="reject-btn" id="rejectBtn">驳回任务</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title stream-head">
+        <span>执行时间线</span>
+        <span class="hint" id="runHint">等待任务</span>
+      </div>
+      <div class="timeline" id="timeline">
+        <div class="empty" id="emptyTip">
+          <b>暂无执行记录</b>
+          填写需求后点击「开始执行」，节点的每一次状态更新都会实时推送到这里。
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  const PRESETS = {
+    normal: '请帮我写一个快速排序算法并测试验证',
+    danger: '执行脚本清空临时目录下的所有无用数据文件 delete all logs',
+    timeout: '请写一个 while True 的 Python 脚本，用于演示沙箱 5 秒硬超时与熔断降级'
+  };
+  const STATUS_TEXT = {
+    PROCESSING: '处理中',
+    WAITING_APPROVAL: '等待审批',
+    COMPLETED: '已完成',
+    FAILED: '失败',
+    REJECTED: '已驳回'
+  };
+
+  const el = {
+    tenant: document.getElementById('tenant'),
+    thread: document.getElementById('thread'),
+    prompt: document.getElementById('prompt'),
+    newThread: document.getElementById('newThread'),
+    runBtn: document.getElementById('runBtn'),
+    stopBtn: document.getElementById('stopBtn'),
+    approvalBox: document.getElementById('approvalBox'),
+    approveBtn: document.getElementById('approveBtn'),
+    rejectBtn: document.getElementById('rejectBtn'),
+    timeline: document.getElementById('timeline'),
+    emptyTip: document.getElementById('emptyTip'),
+    runHint: document.getElementById('runHint'),
+    healthDot: document.getElementById('healthDot'),
+    healthText: document.getElementById('healthText')
+  };
+
+  let controller = null;   // 当前 SSE 请求的 AbortController
+  let startTime = 0;
+  let pendingThread = '';
+
+  function newThreadId() {
+    return 'thread_' + new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+  }
+
+  function setRunning(running, hint) {
+    el.runBtn.disabled = running;
+    el.stopBtn.disabled = !running;
+    el.runHint.textContent = hint || (running ? '执行中...' : '等待任务');
+  }
+
+  function clearTimeline() {
+    el.timeline.innerHTML = '';
+  }
+
+  function elapsed() {
+    const s = (Date.now() - startTime) / 1000;
+    return '+' + s.toFixed(1) + 's';
+  }
+
+  function text(tag, cls, value) {
+    if (value === undefined || value === null || value === '') return null;
+    const node = document.createElement(tag);
+    node.className = cls;
+    node.textContent = String(value);
+    return node;
+  }
+
+  function addEvent(payload) {
+    const isError = Object.prototype.hasOwnProperty.call(payload, 'error') && !payload.node;
+    const nodeName = payload.node || (payload.status === 'REJECTED' ? 'REJECTED' : isError ? 'ERROR' : 'UNKNOWN');
+    const status = payload.status || (isError ? 'FAILED' : 'PROCESSING');
+
+    const card = document.createElement('div');
+    card.className = 'event dev-' + nodeName + (isError ? ' dev-error' : '');
+
+    const head = document.createElement('div');
+    head.className = 'event-head';
+
+    const node = document.createElement('span');
+    node.className = 'node';
+    node.textContent = nodeName;
+    head.appendChild(node);
+
+    const badge = document.createElement('span');
+    badge.className = 'badge ' + status;
+    badge.textContent = STATUS_TEXT[status] || status;
+    head.appendChild(badge);
+
+    if (payload.retry_count > 0) {
+      const retry = document.createElement('span');
+      retry.className = 'retry';
+      retry.textContent = '重试 ' + payload.retry_count + ' 次';
+      head.appendChild(retry);
+    }
+
+    const time = document.createElement('span');
+    time.className = 'time';
+    time.textContent = elapsed();
+    head.appendChild(time);
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'body';
+    const code = text('pre', 'code', payload.code);
+    const err = text('div', 'err', payload.error);
+    const out = text('div', 'out', payload.output || payload.message);
+    if (code) {
+      body.appendChild(text('div', 'label', 'CODE'));
+      body.appendChild(code);
+    }
+    if (err) {
+      body.appendChild(text('div', 'label', 'ERROR'));
+      body.appendChild(err);
+    }
+    if (out) {
+      body.appendChild(text('div', 'label', 'OUTPUT'));
+      body.appendChild(out);
+    }
+    if (body.childNodes.length) card.appendChild(body);
+
+    el.timeline.appendChild(card);
+    el.timeline.scrollTop = el.timeline.scrollHeight;
+  }
+
+  async function readSSE(response, onData) {
+    if (!response.body) throw new Error('当前浏览器不支持流式读取响应体');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep;
+      while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, sep).replace(/\r/g, '');
+        buffer = buffer.slice(sep + 2);
+        for (const line of block.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          const data = line.slice(5).trim();
+          if (!data) continue;
+          if (data === '[DONE]') { onData({ done: true }); continue; }
+          let payload;
+          try { payload = JSON.parse(data); } catch (e) { payload = { raw: data, node: 'RAW' }; }
+          onData({ payload });
+        }
+      }
+    }
+  }
+
+  function resetForRun() {
+    clearTimeline();
+    el.approvalBox.classList.remove('show');
+    startTime = Date.now();
+  }
+
+  async function sendStream(url, body, hintText) {
+    controller = new AbortController();
+    setRunning(true, hintText);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Tenant-ID': el.tenant.value.trim() || 'tenant_demo_001'
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        const raw = await response.text();
+        let message = raw;
+        try {
+          const parsed = JSON.parse(raw);
+          message = parsed.error || parsed.message || raw;
+        } catch (e) { /* 保留原始文本 */ }
+        addEvent({ error: 'HTTP ' + response.status + '：' + message });
+        setRunning(false, '请求失败');
+        return;
+      }
+      await readSSE(response, ({ payload, done }) => {
+        if (done) return;
+        if (!payload) return;
+        // 服务端可能多次推送同一挂起事件，审批面板已展示时不再重复渲染
+        const duplicateInterrupt = payload.node === 'INTERRUPT' && el.approvalBox.classList.contains('show');
+        if (!duplicateInterrupt) addEvent(payload);
+        if (payload.node === 'INTERRUPT') {
+          pendingThread = body.thread_id;
+          el.approvalBox.classList.add('show');
+          setRunning(false, '等待人工审批');
+        } else if (payload.node === 'approval') {
+          el.approvalBox.classList.remove('show');
+        } else if (payload.node === 'fallback' || payload.node === 'REJECTED' || payload.status === 'REJECTED') {
+          el.approvalBox.classList.remove('show');
+        }
+      });
+      if (el.approvalBox.classList.contains('show')) {
+        setRunning(false, '等待人工审批');
+      } else {
+        setRunning(false, '执行结束');
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        addEvent({ node: 'CLIENT', status: 'FAILED', error: '用户已停止接收流式响应（下游连接已中断）' });
+        setRunning(false, '已停止');
+      } else {
+        addEvent({ error: '无法连接网关：' + e.message });
+        setRunning(false, '连接失败');
+      }
+    } finally {
+      controller = null;
+    }
+  }
+
+  el.newThread.addEventListener('click', () => { el.thread.value = newThreadId(); });
+
+  document.querySelectorAll('.preset').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      el.prompt.value = PRESETS[btn.dataset.kind] || '';
+      if (!el.thread.value.trim()) el.thread.value = newThreadId();
+    });
+  });
+
+  el.runBtn.addEventListener('click', () => {
+    const prompt = el.prompt.value.trim();
+    if (!prompt) {
+      addEvent({ error: '请先填写需求描述' });
+      return;
+    }
+    if (!el.thread.value.trim()) el.thread.value = newThreadId();
+    resetForRun();
+    sendStream('/api/v1/agent/stream', {
+      prompt: prompt,
+      thread_id: el.thread.value.trim()
+    }, '正在接收 SSE...');
+  });
+
+  el.stopBtn.addEventListener('click', () => {
+    if (controller) controller.abort();
+  });
+
+  async function approve(approved) {
+    el.approveBtn.disabled = true;
+    el.rejectBtn.disabled = true;
+    try {
+      await sendStream('/api/v1/agent/approve', {
+        thread_id: pendingThread || el.thread.value.trim(),
+        approved: approved
+      }, approved ? '审批通过，正在恢复执行...' : '正在驳回任务...');
+    } finally {
+      el.approveBtn.disabled = false;
+      el.rejectBtn.disabled = false;
+    }
+  }
+
+  el.approveBtn.addEventListener('click', () => approve(true));
+  el.rejectBtn.addEventListener('click', () => approve(false));
+
+  async function checkHealth() {
+    try {
+      const res = await fetch('/health', { cache: 'no-store' });
+      const data = await res.json();
+      el.healthDot.className = 'dot ' + (data.status === 'ok' ? 'ok' : 'bad');
+      el.healthText.textContent = data.status === 'ok' ? '网关在线 · ' + (data.server || '') : '网关异常';
+    } catch (e) {
+      el.healthDot.className = 'dot bad';
+      el.healthText.textContent = '网关不可达';
+    }
+  }
+
+  el.thread.value = newThreadId();
+  checkHealth();
+  setInterval(checkHealth, 15000);
+})();
+</script>
+</body>
+</html>
