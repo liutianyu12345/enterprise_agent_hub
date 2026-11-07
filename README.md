@@ -133,7 +133,7 @@ flowchart TD
 |---|---|
 | `rag_node` | 混合检索 + 精排，拼装规约上下文 |
 | `coder_node` | 调用 LLM 生成代码；存在 `error_message` 时进入 Reflexion 修复提示词 |
-| `sandbox_node` | 临时文件 + `subprocess` 隔离执行，**5 秒硬超时**，结束后清理临时文件 |
+| `sandbox_node` | 临时文件 + `subprocess` 隔离执行，**5 秒硬超时**，结束后清理临时文件；兼容子进程无输出时 `stdout/stderr` 为 `None` 的情况，非零退出且无报错信息时回退为退出码提示，避免误判为执行成功 |
 | `reflect_node` | 重试计数 +1，回流 coder 形成自愈闭环 |
 | `danger_check_node` | 关键词命中（delete/drop/rmdir/remove/kill/reboot/shutdown/format）即判高危 |
 | `approval_node` | 人工批准后才执行，追加"已获人工批准"标记 |
@@ -359,7 +359,7 @@ Write-Output ""
 
 1. **Checkpointer 仅 `MemorySaver`**：进程重启即丢失断点，生产环境建议替换为 `PostgresSaver`。
 2. **`dense_search` 为模拟实现**：生产需接入 Qdrant + Embedding 模型。
-3. **沙箱仅超时隔离**：未限制内存、网络与文件系统访问，生产建议容器化或 `firejail` 级别的更强隔离。
+3. **沙箱仅超时隔离**：未限制内存、网络与文件系统访问；且超时只终止直接子进程，生成代码自行派生的孙进程可能残留，生产建议容器化或使用 Job Object / `firejail` 级别的强制清理与更强隔离。
 4. **审批鉴权缺失**：`/approve` 未校验操作者身份与租户权限，建议接入统一鉴权。
 5. **前端控制台仅用于本地联调**：无登录、无租户隔离，且默认与网关同源部署；若独立部署需补充 CORS 与认证。
 6. **`hub_graph.stream` 为同步生成器**：在 FastAPI 异步路由中直接迭代会阻塞事件循环，高并发下建议改用 `astream` 或放入线程池。
