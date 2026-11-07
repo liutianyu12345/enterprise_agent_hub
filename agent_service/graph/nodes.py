@@ -11,6 +11,7 @@
 """
 
 import os
+import re
 import subprocess
 import tempfile
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -128,12 +129,28 @@ def reflect_node(state: AgentState) ->dict:
     print(f"🔄 [Node: Reflexion] 捕获错误堆栈，推进自愈闭环 (即将进入第 {next_retry} 次重试)...")
     return {"retry_count": next_retry}
 def danger_check_node(state: AgentState) ->dict:
-    """节点 5：危险检查节点，判断代码是否包含危险操作（如删除文件、修改系统配置等）"""
-    code = state.get("code","")
-    task = state.get("task","")
-    # 高危关键词列表
-    dangerous_keywords = ["delete", "drop", "rmdir", "remove", "kill", "reboot", "shutdown", "format"]
-    is_danger = any(kw in code.lower() or kw in task.lower() for kw in dangerous_keywords)
+    """节点 5：危险检查节点，判断需求或代码是否包含真实的高危操作（如删库、删目录、关机）"""
+    code = state.get("code","") or ""
+    task = state.get("task","") or ""
+    # 需求描述中的高危意图关键词：用户明确提出删库/删文件/关机才挂起审批
+    task_keywords = ["delete", "drop", "rmdir", "remove", "kill", "reboot", "shutdown", "format"]
+    # 代码中只匹配真实的高危调用/命令，避免 "{}".format()、os.remove(临时文件)、proc.kill() 等正常写法被误判
+    dangerous_code_patterns = [
+        r"shutil\.rmtree\s*\(",
+        r"os\.rmdir\s*\(",
+        r"os\.removedirs\s*\(",
+        r"rm\s+-rf\b",
+        r"drop\s+(table|database|schema)\b",
+        r"delete\s+from\b",
+        r"mkfs\b",
+        r"format\s+[a-z]:",
+        r"shutdown\b",
+        r"reboot\b",
+        r"taskkill\b",
+    ]
+    is_danger = any(kw in task.lower() for kw in task_keywords) or any(
+        re.search(pattern, code.lower()) for pattern in dangerous_code_patterns
+    )
     if is_danger:
         print("🚨 [Node: DangerCheck] 警报：检测到包含高危敏感操作（删库/删文件/关机）！需挂起审批！")
         return {"is_dangerous": True, "status": "WAITING_APPROVAL"}

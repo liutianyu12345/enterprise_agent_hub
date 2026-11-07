@@ -135,7 +135,7 @@ flowchart TD
 | `coder_node` | 调用 LLM 生成代码；存在 `error_message` 时进入 Reflexion 修复提示词 |
 | `sandbox_node` | 临时文件 + `subprocess` 隔离执行，**5 秒硬超时**，结束后清理临时文件；兼容子进程无输出时 `stdout/stderr` 为 `None` 的情况，非零退出且无报错信息时回退为退出码提示，避免误判为执行成功 |
 | `reflect_node` | 重试计数 +1，回流 coder 形成自愈闭环 |
-| `danger_check_node` | 关键词命中（delete/drop/rmdir/remove/kill/reboot/shutdown/format）即判高危 |
+| `danger_check_node` | 需求描述命中高危意图关键词（delete/drop/rmdir/remove/kill/reboot/shutdown/format），或代码命中真实高危调用（`shutil.rmtree`、`rm -rf`、`DROP TABLE`、`DELETE FROM`、`mkfs`、磁盘 `format`、`shutdown` 等）即判高危；避免 `"{}".format()`、`os.remove(临时文件)`、`proc.kill()` 等正常写法被误判 |
 | `approval_node` | 人工批准后才执行，追加"已获人工批准"标记 |
 | `fallback_node` | 3 次自愈失败后熔断，输出失败原因 |
 
