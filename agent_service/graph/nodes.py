@@ -100,15 +100,18 @@ def sandbox_node(state: AgentState) ->dict:
             text = True,
             encoding="utf-8"
         )
+        # Windows 下子进程没有任何输出时，communicate() 返回的 stdout/stderr 为 None，不能直接 strip
+        stdout = (res.stdout or "").strip()
+        stderr = (res.stderr or "").strip()
         if res.returncode == 0:
-            print(f"✅ [Sandbox] 运行通过！标准输出:\n{res.stdout.strip()}")
+            print(f"✅ [Sandbox] 运行通过！标准输出:\n{stdout}")
             return {
                 "error_message": "",
-                "final_output": res.stdout.strip()
+                "final_output": stdout
             }
         else:
-            #捕获真实stderr 报错信息
-            err_msg = res.stderr.strip()
+            #捕获真实stderr 报错信息；无 stderr 时退化为 stdout 或退出码，避免被判为执行成功
+            err_msg = stderr or stdout or f"ExecutionError: 进程异常退出（退出码 {res.returncode}），无输出信息"
             print(f"❌ [Sandbox] 运行报错:\n{err_msg}")
             return {"error_message": err_msg}
     except subprocess.TimeoutExpired:

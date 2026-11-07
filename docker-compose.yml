@@ -1,5 +1,4 @@
 # 全栈基础中间件一键拉起 (Qdrant / Redis / Langfuse / Postgres)
-version: '3.9'
 
 services:
   # 1. 向量数据库 (Qdrant)
